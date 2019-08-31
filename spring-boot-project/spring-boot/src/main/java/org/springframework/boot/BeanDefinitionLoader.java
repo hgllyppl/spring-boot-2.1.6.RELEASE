@@ -16,12 +16,7 @@
 
 package org.springframework.boot;
 
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-
 import groovy.lang.Closure;
-
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.BeanDefinitionStoreException;
 import org.springframework.beans.factory.groovy.GroovyBeanDefinitionReader;
@@ -44,6 +39,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Loads bean definitions from underlying sources, including XML and JavaConfig. Acts as a
@@ -118,8 +117,7 @@ class BeanDefinitionLoader {
 	}
 
 	/**
-	 * Load the sources into the reader.
-	 * @return the number of loaded beans
+	 * 注册给定的类
 	 */
 	public int load() {
 		int count = 0;
@@ -129,17 +127,25 @@ class BeanDefinitionLoader {
 		return count;
 	}
 
+	/**
+	 * 注册给定的类
+	 */
 	private int load(Object source) {
 		Assert.notNull(source, "Source must not be null");
+		// 如果是 class, 则使用 annotatedReader 注册
+		// 主要路径
 		if (source instanceof Class<?>) {
 			return load((Class<?>) source);
 		}
+		// 如果是 Resource, 则 xmlReader 或 groovyReader 注册
 		if (source instanceof Resource) {
 			return load((Resource) source);
 		}
+		// 如果是 Package, 则使用 scanner 注册
 		if (source instanceof Package) {
 			return load((Package) source);
 		}
+		// ???
 		if (source instanceof CharSequence) {
 			return load((CharSequence) source);
 		}

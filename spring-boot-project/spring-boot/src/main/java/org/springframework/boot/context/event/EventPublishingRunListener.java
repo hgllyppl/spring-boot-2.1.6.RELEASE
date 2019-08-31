@@ -21,6 +21,14 @@ import org.apache.commons.logging.LogFactory;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringApplicationRunListener;
+import org.springframework.boot.builder.ParentContextCloserApplicationListener;
+import org.springframework.boot.context.FileEncodingApplicationListener;
+import org.springframework.boot.context.config.AnsiOutputApplicationListener;
+import org.springframework.boot.context.config.ConfigFileApplicationListener;
+import org.springframework.boot.context.config.DelegatingApplicationListener;
+import org.springframework.boot.context.logging.ClasspathLoggingApplicationListener;
+import org.springframework.boot.context.logging.LoggingApplicationListener;
+import org.springframework.boot.liquibase.LiquibaseServiceLocatorApplicationListener;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -50,6 +58,19 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 
 	private final SimpleApplicationEventMulticaster initialMulticaster;
 
+	/**
+	 * 创建 EventPublishingRunListener
+	 * @see ConfigFileApplicationListener
+	 * @see AnsiOutputApplicationListener
+	 * @see LoggingApplicationListener
+	 * @see ClasspathLoggingApplicationListener
+	 * @see org.springframework.boot.autoconfigure.BackgroundPreinitializer
+	 * @see DelegatingApplicationListener
+	 * @see ParentContextCloserApplicationListener
+	 * @see org.springframework.boot.ClearCachesApplicationListener
+	 * @see FileEncodingApplicationListener
+	 * @see LiquibaseServiceLocatorApplicationListener
+     */
 	public EventPublishingRunListener(SpringApplication application, String[] args) {
 		this.application = application;
 		this.args = args;
@@ -83,12 +104,14 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 
 	@Override
 	public void contextLoaded(ConfigurableApplicationContext context) {
+		// 将 application.listeners 加入 applicationContext
 		for (ApplicationListener<?> listener : this.application.getListeners()) {
 			if (listener instanceof ApplicationContextAware) {
 				((ApplicationContextAware) listener).setApplicationContext(context);
 			}
 			context.addApplicationListener(listener);
 		}
+		// 发布事件
 		this.initialMulticaster.multicastEvent(new ApplicationPreparedEvent(this.application, this.args, context));
 	}
 
@@ -105,20 +128,19 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 	@Override
 	public void failed(ConfigurableApplicationContext context, Throwable exception) {
 		ApplicationFailedEvent event = new ApplicationFailedEvent(this.application, this.args, context, exception);
+		// 如果 context 已激活则使用 context 发布事件
 		if (context != null && context.isActive()) {
-			// Listeners have been registered to the application context so we should
-			// use it at this point if we can
 			context.publishEvent(event);
 		}
+		// 反之, 则使用 initialMulticaster 发布事件
 		else {
-			// An inactive context may not have a multicaster so we use our multicaster to
-			// call all of the context's listeners instead
+			// 将 context.listeners 加入 initialMulticaster
 			if (context instanceof AbstractApplicationContext) {
-				for (ApplicationListener<?> listener : ((AbstractApplicationContext) context)
-						.getApplicationListeners()) {
+				for (ApplicationListener<?> listener : ((AbstractApplicationContext) context).getApplicationListeners()) {
 					this.initialMulticaster.addApplicationListener(listener);
 				}
 			}
+			// 发布事件
 			this.initialMulticaster.setErrorHandler(new LoggingErrorHandler());
 			this.initialMulticaster.multicastEvent(event);
 		}

@@ -60,6 +60,7 @@ class SpringBootExceptionHandler implements UncaughtExceptionHandler {
 		this.exitCode = exitCode;
 	}
 
+	// 如果是"日志配置异常"或者"非已知的异常", 则将其交给 parent 处理
 	@Override
 	public void uncaughtException(Thread thread, Throwable ex) {
 		try {
@@ -121,8 +122,10 @@ class SpringBootExceptionHandler implements UncaughtExceptionHandler {
 
 		@Override
 		protected SpringBootExceptionHandler initialValue() {
+			// 创建 SpringBootExceptionHandler
 			SpringBootExceptionHandler handler = new SpringBootExceptionHandler(
 					Thread.currentThread().getUncaughtExceptionHandler());
+			// 设置 SpringBootExceptionHandler 到当前线程
 			Thread.currentThread().setUncaughtExceptionHandler(handler);
 			return handler;
 		}

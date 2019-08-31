@@ -16,20 +16,19 @@
 
 package org.springframework.boot;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.commons.logging.Log;
-
+import org.springframework.boot.context.event.EventPublishingRunListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.util.ReflectionUtils;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 /**
- * A collection of {@link SpringApplicationRunListener}.
- *
- * @author Phillip Webb
+ * SpringApplicationRunListener 集合
+ * @see EventPublishingRunListener
  */
 class SpringApplicationRunListeners {
 
