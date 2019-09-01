@@ -39,12 +39,21 @@ public abstract class SpringBootCondition implements Condition {
 
 	private final Log logger = LogFactory.getLog(getClass());
 
+	/**
+	 * 过滤给定的 class
+	 * @see org.springframework.context.annotation.ConditionEvaluator#shouldSkip(AnnotatedTypeMetadata)
+	 * @see org.springframework.context.annotation.ConfigurationClassParser#processConfigurationClass
+	 * @see org.springframework.context.annotation.ConfigurationClassBeanDefinitionReader#loadBeanDefinitionsForBeanMethod
+     */
 	@Override
 	public final boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+		// 读取 className or methodName
 		String classOrMethodName = getClassOrMethodName(metadata);
 		try {
+			// 读取条件结果
 			ConditionOutcome outcome = getMatchOutcome(context, metadata);
 			logOutcome(classOrMethodName, outcome);
+			// 将条件结果加入 ConditionEvaluationReport
 			recordEvaluation(context, classOrMethodName, outcome);
 			return outcome.isMatch();
 		}
@@ -71,6 +80,7 @@ public abstract class SpringBootCondition implements Condition {
 		return metadata.toString();
 	}
 
+	// 读取 className or methodName
 	private static String getClassOrMethodName(AnnotatedTypeMetadata metadata) {
 		if (metadata instanceof ClassMetadata) {
 			ClassMetadata classMetadata = (ClassMetadata) metadata;

@@ -34,11 +34,9 @@ import org.springframework.context.ApplicationContextException;
 import org.springframework.core.io.Resource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.ContextLoader;
-import org.springframework.web.context.ContextLoaderListener;
 import org.springframework.web.context.ServletContextAware;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.GenericWebApplicationContext;
-import org.springframework.web.context.support.ServletContextAwareProcessor;
 import org.springframework.web.context.support.ServletContextResource;
 import org.springframework.web.context.support.ServletContextScope;
 import org.springframework.web.context.support.WebApplicationContextUtils;
@@ -50,7 +48,6 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EventListener;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -122,8 +119,9 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	}
 
 	/**
-	 * Register ServletContextAwareProcessor.
-	 * @see ServletContextAwareProcessor
+	 * 此方法分散了超类方法的逻辑, 更觉得应该在 web server 回调时完成此逻辑
+	 * @see GenericWebApplicationContext#postProcessBeanFactory
+	 * @see #selfInitialize
 	 */
 	@Override
 	protected void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
@@ -132,6 +130,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		registerWebApplicationScopes();
 	}
 
+	// 覆盖 refresh 方法, 如果产生了异常, 则停止 embedded web container
 	@Override
 	public final void refresh() throws BeansException, IllegalStateException {
 		try {
@@ -143,6 +142,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		}
 	}
 
+	// 覆盖 onRefresh 方法并创建 embedded web container
 	@Override
 	protected void onRefresh() {
 		super.onRefresh();
@@ -154,6 +154,8 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		}
 	}
 
+	// 覆盖 finishRefresh 方法并启动 embedded web container
+	// 最后, 发布 embedded web container 已启动事件
 	@Override
 	protected void finishRefresh() {
 		super.finishRefresh();
@@ -163,19 +165,23 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		}
 	}
 
+	// 覆盖 onClose 方法并停止 embedded web container
 	@Override
 	protected void onClose() {
 		super.onClose();
 		stopAndReleaseWebServer();
 	}
 
+	// 创建 web server
 	private void createWebServer() {
 		WebServer webServer = this.webServer;
 		ServletContext servletContext = getServletContext();
+		// 如果 webServer 不存在, 则创建之
 		if (webServer == null && servletContext == null) {
 			ServletWebServerFactory factory = getWebServerFactory();
 			this.webServer = factory.getWebServer(getSelfInitializer());
 		}
+		// 反之, 则完成 web server 与 applicationContext 之间的接驳
 		else if (servletContext != null) {
 			try {
 				getSelfInitializer().onStartup(servletContext);
@@ -188,13 +194,9 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	}
 
 	/**
-	 * Returns the {@link ServletWebServerFactory} that should be used to create the
-	 * embedded {@link WebServer}. By default this method searches for a suitable bean in
-	 * the context itself.
-	 * @return a {@link ServletWebServerFactory} (never {@code null})
+	 * 获取 WebServerFactory
 	 */
 	protected ServletWebServerFactory getWebServerFactory() {
-		// Use bean names so that we don't consider the hierarchy
 		String[] beanNames = getBeanFactory().getBeanNamesForType(ServletWebServerFactory.class);
 		if (beanNames.length == 0) {
 			throw new ApplicationContextException("Unable to start ServletWebServerApplicationContext due to missing "
@@ -208,25 +210,34 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	}
 
 	/**
-	 * Returns the {@link ServletContextInitializer} that will be used to complete the
-	 * setup of this {@link WebApplicationContext}.
-	 * @return the self initializer
-	 * @see #prepareWebApplicationContext(ServletContext)
+	 * 创建 ServletContextInitializer, 实现 web server 与 applicationContext 之间的接驳
+	 * 由 web server 回调回来
 	 */
 	private org.springframework.boot.web.servlet.ServletContextInitializer getSelfInitializer() {
 		return this::selfInitialize;
 	}
 
+	// 实现 web server 与 applicationContext 之间的接驳
 	private void selfInitialize(ServletContext servletContext) throws ServletException {
+		// 接驳 servletContext 与 applicationContext
 		prepareWebApplicationContext(servletContext);
+		// 注册 application scope 到 applicationContext
 		registerApplicationScope(servletContext);
+		// 注册 servletContext、servletConfig 到 applicationContext
 		WebApplicationContextUtils.registerEnvironmentBeans(getBeanFactory(), servletContext);
+		/**
+		 * 读取并注册以下类到 servletContext
+		 * @see javax.servlet.ServletContextListener
+		 * @see javax.servlet.Filter
+		 * @see javax.servlet.Servlet
+		 */
 		Collection<ServletContextInitializer> initializerBeans = getServletContextInitializerBeans();
 		for (ServletContextInitializer beans : initializerBeans) {
 			beans.onStartup(servletContext);
 		}
 	}
 
+	// 注册 application scope
 	private void registerApplicationScope(ServletContext servletContext) {
 		ServletContextScope appScope = new ServletContextScope(servletContext);
 		getBeanFactory().registerScope(WebApplicationContext.SCOPE_APPLICATION, appScope);
@@ -241,22 +252,20 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	}
 
 	/**
-	 * Returns {@link ServletContextInitializer}s that should be used with the embedded
-	 * web server. By default this method will first attempt to find
-	 * {@link ServletContextInitializer}, {@link Servlet}, {@link Filter} and certain
-	 * {@link EventListener} beans.
-	 * @return the servlet initializer beans
+	 * 读取以下类
+	 * @see javax.servlet.ServletContextListener
+	 * @see javax.servlet.Filter
+	 * @see javax.servlet.Servlet
+	 * @see org.springframework.boot.web.servlet.ServletListenerRegistrationBean
+	 * @see org.springframework.boot.web.servlet.FilterRegistrationBean
+	 * @see org.springframework.boot.autoconfigure.web.servlet.DispatcherServletRegistrationBean
 	 */
 	protected Collection<ServletContextInitializer> getServletContextInitializerBeans() {
 		return new ServletContextInitializerBeans(getBeanFactory());
 	}
 
 	/**
-	 * Prepare the {@link WebApplicationContext} with the given fully loaded
-	 * {@link ServletContext}. This method is usually called from
-	 * {@link ServletContextInitializer#onStartup(ServletContext)} and is similar to the
-	 * functionality usually provided by a {@link ContextLoaderListener}.
-	 * @param servletContext the operational servlet context
+	 * 完成 servletContext 与 applicationContext 之间的接驳
 	 */
 	protected void prepareWebApplicationContext(ServletContext servletContext) {
 		Object rootContext = servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);

@@ -16,11 +16,6 @@
 
 package org.springframework.boot.autoconfigure.condition;
 
-import java.security.AccessControlException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import org.springframework.boot.autoconfigure.AutoConfigurationImportFilter;
 import org.springframework.boot.autoconfigure.AutoConfigurationMetadata;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage.Style;
@@ -31,6 +26,11 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
+
+import java.security.AccessControlException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * {@link Condition} and {@link AutoConfigurationImportFilter} that checks for the
@@ -43,22 +43,30 @@ import org.springframework.util.StringUtils;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 class OnClassCondition extends FilteringSpringBootCondition {
 
+	/**
+	 * @param autoConfigurationClasses
+	 * @param autoConfigurationMetadata 来自 META-INF/spring-autoconfigure-metadata.properties
+	 *                                  此配置看样子是自动生成的, 记录了自动配置的条件信息
+     * @return
+     */
 	@Override
 	protected final ConditionOutcome[] getOutcomes(String[] autoConfigurationClasses,
 			AutoConfigurationMetadata autoConfigurationMetadata) {
-		// Split the work and perform half in a background thread. Using a single
-		// additional thread seems to offer the best performance. More threads make
-		// things worse
+		// 将匹配过程一分为二, 使用主线程和异步线程并发执行匹配过程
 		int split = autoConfigurationClasses.length / 2;
+		// 创建 OutcomesResolver
 		OutcomesResolver firstHalfResolver = createOutcomesResolver(autoConfigurationClasses, 0, split,
 				autoConfigurationMetadata);
 		OutcomesResolver secondHalfResolver = new StandardOutcomesResolver(autoConfigurationClasses, split,
 				autoConfigurationClasses.length, autoConfigurationMetadata, getBeanClassLoader());
+		// 执行匹配过程
 		ConditionOutcome[] secondHalf = secondHalfResolver.resolveOutcomes();
 		ConditionOutcome[] firstHalf = firstHalfResolver.resolveOutcomes();
+		// 合并两个结果集
 		ConditionOutcome[] outcomes = new ConditionOutcome[autoConfigurationClasses.length];
 		System.arraycopy(firstHalf, 0, outcomes, 0, firstHalf.length);
 		System.arraycopy(secondHalf, 0, outcomes, split, secondHalf.length);
+		// 返回
 		return outcomes;
 	}
 
@@ -173,18 +181,23 @@ class OnClassCondition extends FilteringSpringBootCondition {
 			this.beanClassLoader = beanClassLoader;
 		}
 
+		// 执行条件匹配过程
 		@Override
 		public ConditionOutcome[] resolveOutcomes() {
 			return getOutcomes(this.autoConfigurationClasses, this.start, this.end, this.autoConfigurationMetadata);
 		}
 
+		// 执行条件匹配过程
 		private ConditionOutcome[] getOutcomes(String[] autoConfigurationClasses, int start, int end,
 				AutoConfigurationMetadata autoConfigurationMetadata) {
 			ConditionOutcome[] outcomes = new ConditionOutcome[end - start];
+			// 迭代 autoConfigurationClasses
 			for (int i = start; i < end; i++) {
 				String autoConfigurationClass = autoConfigurationClasses[i];
 				if (autoConfigurationClass != null) {
+					// 读取 @ConditionalOnClass
 					String candidates = autoConfigurationMetadata.get(autoConfigurationClass, "ConditionalOnClass");
+					// 判断 @ConditionalOnClass 内的 classes 是否存在
 					if (candidates != null) {
 						outcomes[i - start] = getOutcome(candidates);
 					}
@@ -193,11 +206,14 @@ class OnClassCondition extends FilteringSpringBootCondition {
 			return outcomes;
 		}
 
+		// 判断给定的 candidates 是否存在
 		private ConditionOutcome getOutcome(String candidates) {
 			try {
+				// 直接判断 candidates 是否存在
 				if (!candidates.contains(",")) {
 					return getOutcome(candidates, this.beanClassLoader);
 				}
+				// 分隔 candidates 并判断 candidate 是否存在
 				for (String candidate : StringUtils.commaDelimitedListToStringArray(candidates)) {
 					ConditionOutcome outcome = getOutcome(candidate, this.beanClassLoader);
 					if (outcome != null) {
@@ -211,6 +227,7 @@ class OnClassCondition extends FilteringSpringBootCondition {
 			return null;
 		}
 
+		// 判断给定 className 是否存在
 		private ConditionOutcome getOutcome(String className, ClassLoader classLoader) {
 			if (ClassNameFilter.MISSING.matches(className, classLoader)) {
 				return ConditionOutcome.noMatch(ConditionMessage.forCondition(ConditionalOnClass.class)
