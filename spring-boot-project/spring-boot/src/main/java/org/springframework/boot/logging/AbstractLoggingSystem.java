@@ -16,18 +16,18 @@
 
 package org.springframework.boot.logging;
 
+import org.springframework.core.env.Environment;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.StringUtils;
+import org.springframework.util.SystemPropertyUtils;
+
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.springframework.core.env.Environment;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.util.ClassUtils;
-import org.springframework.util.StringUtils;
-import org.springframework.util.SystemPropertyUtils;
 
 /**
  * Abstract base class for {@link LoggingSystem} implementations.
@@ -50,12 +50,15 @@ public abstract class AbstractLoggingSystem extends LoggingSystem {
 	public void beforeInitialize() {
 	}
 
+	// 初始化日志系统
 	@Override
 	public void initialize(LoggingInitializationContext initializationContext, String configLocation, LogFile logFile) {
+		// 如果配置存在, 则使用配置初始化日志系统
 		if (StringUtils.hasLength(configLocation)) {
 			initializeWithSpecificConfig(initializationContext, configLocation, logFile);
 			return;
 		}
+		// 查找配置并初始化日志系统
 		initializeWithConventions(initializationContext, logFile);
 	}
 
@@ -66,19 +69,23 @@ public abstract class AbstractLoggingSystem extends LoggingSystem {
 	}
 
 	private void initializeWithConventions(LoggingInitializationContext initializationContext, LogFile logFile) {
+		// 查找"logback-test.groovy", "logback-test.xml", "logback.groovy", "logback.xml"
 		String config = getSelfInitializationConfig();
+		// 如果以上配置存在, 则使用其初始化日志系统
 		if (config != null && logFile == null) {
-			// self initialization has occurred, reinitialize in case of property changes
 			reinitialize(initializationContext);
 			return;
 		}
+		// 查找"logback-test-spring.groovy", "logback-test-spring.xml", "logback-spring.groovy", "logback-spring.xml"
 		if (config == null) {
 			config = getSpringInitializationConfig();
 		}
+		// 如果以上配置存在, 则使用其初始化日志系统
 		if (config != null) {
 			loadConfiguration(initializationContext, config, logFile);
 			return;
 		}
+		// 如果以上配置都不存在, 则使用缺省配置初始化日志系统
 		loadDefaults(initializationContext, logFile);
 	}
 

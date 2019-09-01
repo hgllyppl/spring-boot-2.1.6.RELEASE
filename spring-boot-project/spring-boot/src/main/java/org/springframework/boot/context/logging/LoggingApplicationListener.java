@@ -16,16 +16,8 @@
 
 package org.springframework.boot.context.logging;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
@@ -40,6 +32,7 @@ import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggingInitializationContext;
 import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.boot.logging.LoggingSystemProperties;
+import org.springframework.boot.logging.logback.LogbackLoggingSystem;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
@@ -54,6 +47,13 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * An {@link ApplicationListener} that configures the {@link LoggingSystem}. If the
@@ -187,6 +187,7 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 		return false;
 	}
 
+	// 日志配置入口
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
 		if (event instanceof ApplicationStartingEvent) {
@@ -207,11 +208,16 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 		}
 	}
 
+	/**
+	 * 创建日志系统
+	 * @see LogbackLoggingSystem#beforeInitialize
+     */
 	private void onApplicationStartingEvent(ApplicationStartingEvent event) {
 		this.loggingSystem = LoggingSystem.get(event.getSpringApplication().getClassLoader());
 		this.loggingSystem.beforeInitialize();
 	}
 
+	// 初始化日志系统
 	private void onApplicationEnvironmentPreparedEvent(ApplicationEnvironmentPreparedEvent event) {
 		if (this.loggingSystem == null) {
 			this.loggingSystem = LoggingSystem.get(event.getSpringApplication().getClassLoader());
@@ -219,6 +225,7 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 		initialize(event.getEnvironment(), event.getSpringApplication().getClassLoader());
 	}
 
+	// 将日志系统注册到 beanFactory
 	private void onApplicationPreparedEvent(ApplicationPreparedEvent event) {
 		ConfigurableListableBeanFactory beanFactory = event.getApplicationContext().getBeanFactory();
 		if (!beanFactory.containsBean(LOGGING_SYSTEM_BEAN_NAME)) {
@@ -226,6 +233,10 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 		}
 	}
 
+	/**
+	 * 清理日志系统
+	 * @see LogbackLoggingSystem#cleanUp
+	 */
 	private void onContextClosedEvent() {
 		if (this.loggingSystem != null) {
 			this.loggingSystem.cleanUp();
@@ -239,20 +250,23 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 	}
 
 	/**
-	 * Initialize the logging system according to preferences expressed through the
-	 * {@link Environment} and the classpath.
-	 * @param environment the environment
-	 * @param classLoader the classloader
+	 * 初始化日志系统
 	 */
 	protected void initialize(ConfigurableEnvironment environment, ClassLoader classLoader) {
+		// 设置日志系统配置
 		new LoggingSystemProperties(environment).apply();
+		// ???
 		LogFile logFile = LogFile.get(environment);
 		if (logFile != null) {
 			logFile.applyToSystemProperties();
 		}
+		// 设置日志级别 ???
 		initializeEarlyLoggingLevel(environment);
+		// 初始化日志系统
 		initializeSystem(environment, this.loggingSystem, logFile);
+		// 设置最终的日志级别 ???
 		initializeFinalLoggingLevels(environment, this.loggingSystem);
+		// 注册关闭钩子
 		registerShutdownHookIfNecessary(environment, this.loggingSystem);
 	}
 
@@ -272,9 +286,11 @@ public class LoggingApplicationListener implements GenericApplicationListener {
 		return (value != null && !value.equals("false"));
 	}
 
+	// 初始化日志系统
 	private void initializeSystem(ConfigurableEnvironment environment, LoggingSystem system, LogFile logFile) {
 		LoggingInitializationContext initializationContext = new LoggingInitializationContext(environment);
 		String logConfig = environment.getProperty(CONFIG_PROPERTY);
+		// 使用配置初始化日志系统
 		if (ignoreLogConfig(logConfig)) {
 			system.initialize(initializationContext, null, logFile);
 		}

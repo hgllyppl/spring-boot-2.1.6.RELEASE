@@ -16,15 +16,6 @@
 
 package org.springframework.boot.logging.logback;
 
-import java.net.URL;
-import java.security.CodeSource;
-import java.security.ProtectionDomain;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Handler;
-import java.util.logging.LogManager;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
@@ -41,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.slf4j.impl.StaticLoggerBinder;
-
 import org.springframework.boot.logging.LogFile;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggerConfiguration;
@@ -53,6 +43,15 @@ import org.springframework.core.env.Environment;
 import org.springframework.util.Assert;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
+
+import java.net.URL;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Handler;
+import java.util.logging.LogManager;
 
 /**
  * {@link LoggingSystem} for <a href="https://logback.qos.ch">logback</a>.
@@ -98,25 +97,35 @@ public class LogbackLoggingSystem extends Slf4JLoggingSystem {
 		return new String[] { "logback-test.groovy", "logback-test.xml", "logback.groovy", "logback.xml" };
 	}
 
+	// beforeInitialize
 	@Override
 	public void beforeInitialize() {
+		// 初始化 LoggerContext
 		LoggerContext loggerContext = getLoggerContext();
+		// 如果 LoggerContext 已初始化, 则返回
 		if (isAlreadyInitialized(loggerContext)) {
 			return;
 		}
+		// 将 jdk logger 接驳到 slf4j
 		super.beforeInitialize();
+		// ???
 		loggerContext.getTurboFilterList().add(FILTER);
 	}
 
+	// 初始化日志系统
 	@Override
 	public void initialize(LoggingInitializationContext initializationContext, String configLocation, LogFile logFile) {
+		// 如果已初始化, 则返回
 		LoggerContext loggerContext = getLoggerContext();
 		if (isAlreadyInitialized(loggerContext)) {
 			return;
 		}
+		// 初始化日志系统
 		super.initialize(initializationContext, configLocation, logFile);
 		loggerContext.getTurboFilterList().remove(FILTER);
+		// 标记日志系统已初始化
 		markAsInitialized(loggerContext);
+		// 打印日志
 		if (StringUtils.hasText(System.getProperty(CONFIGURATION_FILE_PROPERTY))) {
 			getLogger(LogbackLoggingSystem.class.getName()).warn("Ignoring '" + CONFIGURATION_FILE_PROPERTY
 					+ "' system property. " + "Please use 'logging.config' instead.");

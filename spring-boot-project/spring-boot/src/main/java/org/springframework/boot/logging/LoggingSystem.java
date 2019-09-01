@@ -16,15 +16,18 @@
 
 package org.springframework.boot.logging;
 
+import org.springframework.boot.logging.java.JavaLoggingSystem;
+import org.springframework.boot.logging.log4j2.Log4J2LoggingSystem;
+import org.springframework.boot.logging.logback.LogbackLoggingSystem;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.StringUtils;
+
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.springframework.util.ClassUtils;
-import org.springframework.util.StringUtils;
 
 /**
  * Common abstraction over logging systems.
@@ -59,8 +62,7 @@ public abstract class LoggingSystem {
 	static {
 		Map<String, String> systems = new LinkedHashMap<>();
 		systems.put("ch.qos.logback.core.Appender", "org.springframework.boot.logging.logback.LogbackLoggingSystem");
-		systems.put("org.apache.logging.log4j.core.impl.Log4jContextFactory",
-				"org.springframework.boot.logging.log4j2.Log4J2LoggingSystem");
+		systems.put("org.apache.logging.log4j.core.impl.Log4jContextFactory", "org.springframework.boot.logging.log4j2.Log4J2LoggingSystem");
 		systems.put("java.util.logging.LogManager", "org.springframework.boot.logging.java.JavaLoggingSystem");
 		SYSTEMS = Collections.unmodifiableMap(systems);
 	}
@@ -141,9 +143,12 @@ public abstract class LoggingSystem {
 	}
 
 	/**
-	 * Detect and return the logging system in use. Supports Logback and Java Logging.
-	 * @param classLoader the classloader
-	 * @return the logging system
+	 * 读取 org.springframework.boot.logging.LoggingSystem
+	 * 如果属性非空, 则使用指定的 LoggingSystem
+	 * 反之, 则遍历 SYSTEMS 并取第一个存在的 LoggingSystem
+	 * @see LogbackLoggingSystem
+	 * @see Log4J2LoggingSystem
+	 * @see JavaLoggingSystem
 	 */
 	public static LoggingSystem get(ClassLoader classLoader) {
 		String loggingSystem = System.getProperty(SYSTEM_PROPERTY);
@@ -153,8 +158,10 @@ public abstract class LoggingSystem {
 			}
 			return get(classLoader, loggingSystem);
 		}
-		return SYSTEMS.entrySet().stream().filter((entry) -> ClassUtils.isPresent(entry.getKey(), classLoader))
-				.map((entry) -> get(classLoader, entry.getValue())).findFirst()
+		return SYSTEMS.entrySet().stream()
+				.filter((entry) -> ClassUtils.isPresent(entry.getKey(), classLoader))
+				.map((entry) -> get(classLoader, entry.getValue()))
+				.findFirst()
 				.orElseThrow(() -> new IllegalStateException("No suitable logging system located"));
 	}
 
