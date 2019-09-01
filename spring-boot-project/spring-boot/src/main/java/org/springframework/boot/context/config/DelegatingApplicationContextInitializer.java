@@ -16,9 +16,6 @@
 
 package org.springframework.boot.context.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.beans.BeanUtils;
 import org.springframework.context.ApplicationContextException;
 import org.springframework.context.ApplicationContextInitializer;
@@ -31,17 +28,17 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * {@link ApplicationContextInitializer} that delegates to other initializers that are
- * specified under a {@literal context.initializer.classes} environment property.
+ * 此类是为了导入更多的 initializer 而存在
  *
  * @author Dave Syer
  * @author Phillip Webb
  */
 public class DelegatingApplicationContextInitializer
 		implements ApplicationContextInitializer<ConfigurableApplicationContext>, Ordered {
-
-	// NOTE: Similar to org.springframework.web.context.ContextLoader
 
 	private static final String PROPERTY_NAME = "context.initializer.classes";
 
@@ -50,15 +47,19 @@ public class DelegatingApplicationContextInitializer
 	@Override
 	public void initialize(ConfigurableApplicationContext context) {
 		ConfigurableEnvironment environment = context.getEnvironment();
+		// 读取 context.initializer.classes 来导入更多的 initializer
 		List<Class<?>> initializerClasses = getInitializerClasses(environment);
+		// 实例化给定 initializerClasses 并完成调用
 		if (!initializerClasses.isEmpty()) {
 			applyInitializerClasses(context, initializerClasses);
 		}
 	}
 
+	// 读取 context.initializer.classes 来导入更多的 initializer
 	private List<Class<?>> getInitializerClasses(ConfigurableEnvironment env) {
 		String classNames = env.getProperty(PROPERTY_NAME);
 		List<Class<?>> classes = new ArrayList<>();
+		// 加载 classNames
 		if (StringUtils.hasLength(classNames)) {
 			for (String className : StringUtils.tokenizeToStringArray(classNames, ",")) {
 				classes.add(getInitializerClass(className));
@@ -67,6 +68,7 @@ public class DelegatingApplicationContextInitializer
 		return classes;
 	}
 
+	// 加载给定的 class
 	private Class<?> getInitializerClass(String className) throws LinkageError {
 		try {
 			Class<?> initializerClass = ClassUtils.forName(className, ClassUtils.getDefaultClassLoader());
@@ -78,6 +80,7 @@ public class DelegatingApplicationContextInitializer
 		}
 	}
 
+	// 实例化给定的 initializerClasses 并完成调用
 	private void applyInitializerClasses(ConfigurableApplicationContext context, List<Class<?>> initializerClasses) {
 		Class<?> contextClass = context.getClass();
 		List<ApplicationContextInitializer<?>> initializers = new ArrayList<>();
@@ -87,6 +90,7 @@ public class DelegatingApplicationContextInitializer
 		applyInitializers(context, initializers);
 	}
 
+	// 实例化给定的 initializerClasses
 	private ApplicationContextInitializer<?> instantiateInitializer(Class<?> contextClass, Class<?> initializerClass) {
 		Class<?> requireContextClass = GenericTypeResolver.resolveTypeArgument(initializerClass,
 				ApplicationContextInitializer.class);
@@ -98,6 +102,7 @@ public class DelegatingApplicationContextInitializer
 		return (ApplicationContextInitializer<?>) BeanUtils.instantiateClass(initializerClass);
 	}
 
+	// 调用给定的 initializers
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void applyInitializers(ConfigurableApplicationContext context,
 			List<ApplicationContextInitializer<?>> initializers) {

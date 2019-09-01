@@ -16,10 +16,6 @@
 
 package org.springframework.boot.context.config;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
 import org.springframework.context.ApplicationContextException;
@@ -32,6 +28,10 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * {@link ApplicationListener} that delegates to other listeners that are specified under
@@ -50,19 +50,24 @@ public class DelegatingApplicationListener implements ApplicationListener<Applic
 
 	private SimpleApplicationEventMulticaster multicaster;
 
+	// 读取 context.listener.classes 属性来实例化额外的 listener
+	// 并将当前事件广播到这些额外的 listener
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
 		if (event instanceof ApplicationEnvironmentPreparedEvent) {
+			// 读取额外的 listener
 			List<ApplicationListener<ApplicationEvent>> delegates = getListeners(
 					((ApplicationEnvironmentPreparedEvent) event).getEnvironment());
 			if (delegates.isEmpty()) {
 				return;
 			}
+			// 注册额外的 listener
 			this.multicaster = new SimpleApplicationEventMulticaster();
 			for (ApplicationListener<ApplicationEvent> listener : delegates) {
 				this.multicaster.addApplicationListener(listener);
 			}
 		}
+		// 广播事件到额外的 listener
 		if (this.multicaster != null) {
 			this.multicaster.multicastEvent(event);
 		}

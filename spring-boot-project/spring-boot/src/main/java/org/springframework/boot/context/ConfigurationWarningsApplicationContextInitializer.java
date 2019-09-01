@@ -16,16 +16,8 @@
 
 package org.springframework.boot.context;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -42,6 +34,13 @@ import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
 /**
  * {@link ApplicationContextInitializer} to report warnings for common misconfiguration
  * mistakes.
@@ -54,6 +53,7 @@ public class ConfigurationWarningsApplicationContextInitializer
 
 	private static final Log logger = LogFactory.getLog(ConfigurationWarningsApplicationContextInitializer.class);
 
+	// 注册 ConfigurationWarningsPostProcessor
 	@Override
 	public void initialize(ConfigurableApplicationContext context) {
 		context.addBeanFactoryPostProcessor(new ConfigurationWarningsPostProcessor(getChecks()));
@@ -68,7 +68,10 @@ public class ConfigurationWarningsApplicationContextInitializer
 	}
 
 	/**
-	 * {@link BeanDefinitionRegistryPostProcessor} to report warnings.
+	 * 检查扫描路径是否同 org/org.springframework 一样
+	 * 如果一样, 将打印警告日志
+	 *
+	 * 此场景可能导致应用无法正常启动
 	 */
 	protected static final class ConfigurationWarningsPostProcessor
 			implements PriorityOrdered, BeanDefinitionRegistryPostProcessor {
@@ -88,10 +91,13 @@ public class ConfigurationWarningsApplicationContextInitializer
 		public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
 		}
 
+		// 检查扫描路径并打印警告日志
 		@Override
 		public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
 			for (Check check : this.checks) {
+				// 检查扫描路径
 				String message = check.getWarning(registry);
+				// 打印警告日志
 				if (StringUtils.hasLength(message)) {
 					warn(message);
 				}
@@ -107,23 +113,15 @@ public class ConfigurationWarningsApplicationContextInitializer
 
 	}
 
-	/**
-	 * A single check that can be applied.
-	 */
 	@FunctionalInterface
 	protected interface Check {
 
-		/**
-		 * Returns a warning if the check fails or {@code null} if there are no problems.
-		 * @param registry the {@link BeanDefinitionRegistry}
-		 * @return a warning message or {@code null}
-		 */
 		String getWarning(BeanDefinitionRegistry registry);
 
 	}
 
 	/**
-	 * {@link Check} for {@code @ComponentScan} on problematic package.
+	 * 检查扫描路径是否存在问题
 	 */
 	protected static class ComponentScanPackageCheck implements Check {
 
@@ -138,15 +136,20 @@ public class ConfigurationWarningsApplicationContextInitializer
 
 		@Override
 		public String getWarning(BeanDefinitionRegistry registry) {
+			// 读取扫描路径
 			Set<String> scannedPackages = getComponentScanningPackages(registry);
+			// 检查扫描路径
 			List<String> problematicPackages = getProblematicPackages(scannedPackages);
 			if (problematicPackages.isEmpty()) {
 				return null;
 			}
+			// 返回错误信息
 			return "Your ApplicationContext is unlikely to " + "start due to a @ComponentScan of "
 					+ StringUtils.collectionToDelimitedString(problematicPackages, ", ") + ".";
 		}
 
+		// 遍历 BeanDefinitionNames, 如果 beanDef 带有 ComponentScan
+		// 则读取其扫描路径
 		protected Set<String> getComponentScanningPackages(BeanDefinitionRegistry registry) {
 			Set<String> packages = new LinkedHashSet<>();
 			String[] names = registry.getBeanDefinitionNames();
@@ -160,6 +163,7 @@ public class ConfigurationWarningsApplicationContextInitializer
 			return packages;
 		}
 
+		// 读取 ComponentScan
 		private void addComponentScanningPackages(Set<String> packages, AnnotationMetadata metadata) {
 			AnnotationAttributes attributes = AnnotationAttributes
 					.fromMap(metadata.getAnnotationAttributes(ComponentScan.class.getName(), true));
@@ -187,6 +191,7 @@ public class ConfigurationWarningsApplicationContextInitializer
 			}
 		}
 
+		// 检查扫描路径
 		private List<String> getProblematicPackages(Set<String> scannedPackages) {
 			List<String> problematicPackages = new ArrayList<>();
 			for (String scannedPackage : scannedPackages) {

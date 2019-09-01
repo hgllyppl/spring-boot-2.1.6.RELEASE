@@ -16,18 +16,17 @@
 
 package org.springframework.boot.context.logging;
 
-import java.net.URLClassLoader;
-import java.util.Arrays;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
 import org.springframework.boot.context.event.ApplicationFailedEvent;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.event.GenericApplicationListener;
 import org.springframework.context.event.SmartApplicationListener;
 import org.springframework.core.ResolvableType;
+
+import java.net.URLClassLoader;
+import java.util.Arrays;
 
 /**
  * A {@link SmartApplicationListener} that reacts to
@@ -44,6 +43,7 @@ public final class ClasspathLoggingApplicationListener implements GenericApplica
 
 	private static final Log logger = LogFactory.getLog(ClasspathLoggingApplicationListener.class);
 
+	// 打印启动成功/失败日志
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
 		if (logger.isDebugEnabled()) {

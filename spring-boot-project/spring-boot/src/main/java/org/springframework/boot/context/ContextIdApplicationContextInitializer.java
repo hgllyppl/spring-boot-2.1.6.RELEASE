@@ -16,14 +16,14 @@
 
 package org.springframework.boot.context;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.util.StringUtils;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * {@link ApplicationContextInitializer} that sets the Spring
@@ -48,6 +48,7 @@ public class ContextIdApplicationContextInitializer
 		return this.order;
 	}
 
+	// 读取 ContextId 并将设置到 applicationContext
 	@Override
 	public void initialize(ConfigurableApplicationContext applicationContext) {
 		ContextId contextId = getContextId(applicationContext);
@@ -55,14 +56,18 @@ public class ContextIdApplicationContextInitializer
 		applicationContext.getBeanFactory().registerSingleton(ContextId.class.getName(), contextId);
 	}
 
+	// 读取 ContextId
 	private ContextId getContextId(ConfigurableApplicationContext applicationContext) {
+		// 从 parentApplicationContext 读取 ContextId
 		ApplicationContext parent = applicationContext.getParent();
 		if (parent != null && parent.containsBean(ContextId.class.getName())) {
 			return parent.getBean(ContextId.class).createChildId();
 		}
+		// 创建 ContextId
 		return new ContextId(getApplicationId(applicationContext.getEnvironment()));
 	}
 
+	// 创建 ContextId
 	private String getApplicationId(ConfigurableEnvironment environment) {
 		String name = environment.getProperty("spring.application.name");
 		return StringUtils.hasText(name) ? name : "application";

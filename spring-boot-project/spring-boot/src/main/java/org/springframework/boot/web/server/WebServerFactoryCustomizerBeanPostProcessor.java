@@ -16,11 +16,6 @@
 
 package org.springframework.boot.web.server;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -29,6 +24,11 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.util.LambdaSafe;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.util.Assert;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * {@link BeanPostProcessor} that applies all {@link WebServerFactoryCustomizer} beans
@@ -65,6 +65,7 @@ public class WebServerFactoryCustomizerBeanPostProcessor implements BeanPostProc
 		return bean;
 	}
 
+	// 在 WebServerFactory 被初始化后, 对其进行配置
 	@SuppressWarnings("unchecked")
 	private void postProcessBeforeInitialization(WebServerFactory webServerFactory) {
 		LambdaSafe.callbacks(WebServerFactoryCustomizer.class, getCustomizers(), webServerFactory)

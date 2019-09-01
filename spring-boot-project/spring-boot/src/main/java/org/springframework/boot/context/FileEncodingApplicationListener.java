@@ -54,6 +54,7 @@ public class FileEncodingApplicationListener
 		return Ordered.LOWEST_PRECEDENCE;
 	}
 
+	// 如果配置的 spring 编码方式和配置的虚拟机编码方式不一致, 则抛出异常
 	@Override
 	public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
 		ConfigurableEnvironment environment = event.getEnvironment();

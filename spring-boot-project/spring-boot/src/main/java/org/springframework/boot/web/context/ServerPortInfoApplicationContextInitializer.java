@@ -16,9 +16,6 @@
 
 package org.springframework.boot.web.context;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.server.WebServer;
 import org.springframework.context.ApplicationContext;
@@ -31,6 +28,9 @@ import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySource;
 import org.springframework.util.StringUtils;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * {@link ApplicationContextInitializer} that sets {@link Environment} properties for the
@@ -52,6 +52,7 @@ import org.springframework.util.StringUtils;
 public class ServerPortInfoApplicationContextInitializer implements
 		ApplicationContextInitializer<ConfigurableApplicationContext>, ApplicationListener<WebServerInitializedEvent> {
 
+	// 将当前 initializer 注册成为 listener
 	@Override
 	public void initialize(ConfigurableApplicationContext applicationContext) {
 		applicationContext.addApplicationListener(this);
@@ -59,7 +60,9 @@ public class ServerPortInfoApplicationContextInitializer implements
 
 	@Override
 	public void onApplicationEvent(WebServerInitializedEvent event) {
+		// local.server.port
 		String propertyName = "local." + getName(event.getApplicationContext()) + ".port";
+		// 将 local.server.port 设置到 environment
 		setPortProperty(event.getApplicationContext(), propertyName, event.getWebServer().getPort());
 	}
 

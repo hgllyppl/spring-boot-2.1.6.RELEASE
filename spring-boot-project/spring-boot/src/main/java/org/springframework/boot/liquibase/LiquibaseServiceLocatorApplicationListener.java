@@ -36,6 +36,7 @@ public class LiquibaseServiceLocatorApplicationListener implements ApplicationLi
 
 	private static final Log logger = LogFactory.getLog(LiquibaseServiceLocatorApplicationListener.class);
 
+	// ???
 	@Override
 	public void onApplicationEvent(ApplicationStartingEvent event) {
 		if (ClassUtils.isPresent("liquibase.servicelocator.CustomResolverServiceLocator",

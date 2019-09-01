@@ -76,6 +76,7 @@ public class ConditionEvaluationReportLoggingListener
 		return this.logLevelForReport;
 	}
 
+	// 注册 ConditionEvaluationReportListener
 	@Override
 	public void initialize(ConfigurableApplicationContext applicationContext) {
 		this.applicationContext = applicationContext;
@@ -86,6 +87,7 @@ public class ConditionEvaluationReportLoggingListener
 		}
 	}
 
+	// 打印配置日志
 	protected void onApplicationEvent(ApplicationEvent event) {
 		ConfigurableApplicationContext initializerApplicationContext = this.applicationContext;
 		if (event instanceof ContextRefreshedEvent) {
@@ -103,6 +105,7 @@ public class ConditionEvaluationReportLoggingListener
 		logAutoConfigurationReport(!this.applicationContext.isActive());
 	}
 
+	// 打印配置日志
 	public void logAutoConfigurationReport(boolean isCrashReport) {
 		if (this.report == null) {
 			if (this.applicationContext == null) {

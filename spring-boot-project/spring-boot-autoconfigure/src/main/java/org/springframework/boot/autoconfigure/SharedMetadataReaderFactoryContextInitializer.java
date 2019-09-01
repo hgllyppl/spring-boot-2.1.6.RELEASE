@@ -52,6 +52,7 @@ class SharedMetadataReaderFactoryContextInitializer
 	public static final String BEAN_NAME = "org.springframework.boot.autoconfigure."
 			+ "internalCachingMetadataReaderFactory";
 
+	// 注册 CachingMetadataReaderFactoryPostProcessor
 	@Override
 	public void initialize(ConfigurableApplicationContext applicationContext) {
 		applicationContext.addBeanFactoryPostProcessor(new CachingMetadataReaderFactoryPostProcessor());
@@ -63,16 +64,14 @@ class SharedMetadataReaderFactoryContextInitializer
 	}
 
 	/**
-	 * {@link BeanDefinitionRegistryPostProcessor} to register the
-	 * {@link CachingMetadataReaderFactory} and configure the
-	 * {@link ConfigurationClassPostProcessor}.
+	 * 注册 CachingMetadataReaderFactory 并将其设置为 ConfigurationClassPostProcessor 的属性
+	 * @see ConfigurationClassPostProcessor#metadataReaderFactory
 	 */
 	private static class CachingMetadataReaderFactoryPostProcessor
 			implements BeanDefinitionRegistryPostProcessor, PriorityOrdered {
 
 		@Override
 		public int getOrder() {
-			// Must happen before the ConfigurationClassPostProcessor is created
 			return Ordered.HIGHEST_PRECEDENCE;
 		}
 
@@ -80,12 +79,14 @@ class SharedMetadataReaderFactoryContextInitializer
 		public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
 		}
 
+		// 注册 CachingMetadataReaderFactory 并将其设置为 ConfigurationClassPostProcessor 的属性
 		@Override
 		public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
 			register(registry);
 			configureConfigurationClassPostProcessor(registry);
 		}
 
+		// 注册 CachingMetadataReaderFactory
 		private void register(BeanDefinitionRegistry registry) {
 			BeanDefinition definition = BeanDefinitionBuilder
 					.genericBeanDefinition(SharedMetadataReaderFactoryBean.class, SharedMetadataReaderFactoryBean::new)
@@ -93,6 +94,7 @@ class SharedMetadataReaderFactoryContextInitializer
 			registry.registerBeanDefinition(BEAN_NAME, definition);
 		}
 
+		// 设置 ConfigurationClassPostProcessor.metadataReaderFactory 属性
 		private void configureConfigurationClassPostProcessor(BeanDefinitionRegistry registry) {
 			try {
 				BeanDefinition definition = registry

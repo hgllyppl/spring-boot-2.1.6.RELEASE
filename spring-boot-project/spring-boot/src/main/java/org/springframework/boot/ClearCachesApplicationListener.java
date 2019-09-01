@@ -16,11 +16,11 @@
 
 package org.springframework.boot;
 
-import java.lang.reflect.Method;
-
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.util.ReflectionUtils;
+
+import java.lang.reflect.Method;
 
 /**
  * {@link ApplicationListener} to cleanup caches once the context is loaded.
@@ -29,6 +29,7 @@ import org.springframework.util.ReflectionUtils;
  */
 class ClearCachesApplicationListener implements ApplicationListener<ContextRefreshedEvent> {
 
+	// 清除缓存
 	@Override
 	public void onApplicationEvent(ContextRefreshedEvent event) {
 		ReflectionUtils.clearCache();

@@ -16,15 +16,7 @@
 
 package org.springframework.boot.autoconfigure;
 
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.validation.Configuration;
-import javax.validation.Validation;
-
 import org.apache.catalina.mbeans.MBeanFactory;
-
 import org.springframework.boot.context.event.ApplicationFailedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.event.ApplicationStartingEvent;
@@ -35,6 +27,12 @@ import org.springframework.core.annotation.Order;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.support.AllEncompassingFormHttpMessageConverter;
+
+import javax.validation.Configuration;
+import javax.validation.Validation;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * {@link ApplicationListener} to trigger early initialization in a background thread of
@@ -65,6 +63,7 @@ public class BackgroundPreinitializer implements ApplicationListener<SpringAppli
 
 	private static final CountDownLatch preinitializationComplete = new CountDownLatch(1);
 
+	// 如本类上的英文注释所说, 提前加载一些类以触发他们的静态代码块提前初始化完成
 	@Override
 	public void onApplicationEvent(SpringApplicationEvent event) {
 		if (!Boolean.getBoolean(IGNORE_BACKGROUNDPREINITIALIZER_PROPERTY_NAME)

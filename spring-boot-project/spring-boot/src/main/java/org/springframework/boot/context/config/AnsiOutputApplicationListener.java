@@ -36,6 +36,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 public class AnsiOutputApplicationListener
 		implements ApplicationListener<ApplicationEnvironmentPreparedEvent>, Ordered {
 
+	// 设置 ansi console(貌似彩色输出???)
 	@Override
 	public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
 		ConfigurableEnvironment environment = event.getEnvironment();

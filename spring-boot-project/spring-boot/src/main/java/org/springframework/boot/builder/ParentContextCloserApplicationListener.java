@@ -16,8 +16,6 @@
 
 package org.springframework.boot.builder;
 
-import java.lang.ref.WeakReference;
-
 import org.springframework.beans.BeansException;
 import org.springframework.boot.builder.ParentContextApplicationContextInitializer.ParentContextAvailableEvent;
 import org.springframework.context.ApplicationContext;
@@ -27,6 +25,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.core.Ordered;
 import org.springframework.util.ObjectUtils;
+
+import java.lang.ref.WeakReference;
 
 /**
  * Listener that closes the application context if its parent is closed. It listens for
@@ -53,6 +53,9 @@ public class ParentContextCloserApplicationListener
 		this.context = context;
 	}
 
+	// 读取当前 ApplicationContext 的 parentApplicationContext
+	// 如果 parentApplicationContext 存在, 则为其注册 ContextCloserListener
+	// 当 parentApplicationContext 被关闭时, 同时关闭 childApplicationContext
 	@Override
 	public void onApplicationEvent(ParentContextAvailableEvent event) {
 		maybeInstallListenerInParent(event.getApplicationContext());
@@ -86,6 +89,7 @@ public class ParentContextCloserApplicationListener
 			this.childContext = new WeakReference<>(childContext);
 		}
 
+		// 当 parentApplicationContext 被关闭时, 同时关闭 childApplicationContext
 		@Override
 		public void onApplicationEvent(ContextClosedEvent event) {
 			ConfigurableApplicationContext context = this.childContext.get();

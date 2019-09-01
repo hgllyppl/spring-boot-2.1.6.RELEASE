@@ -16,11 +16,6 @@
 
 package org.springframework.boot.web.server;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -28,6 +23,11 @@ import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.util.Assert;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * {@link BeanPostProcessor} that applies all {@link ErrorPageRegistrar}s from the bean
@@ -63,6 +63,7 @@ public class ErrorPageRegistrarBeanPostProcessor implements BeanPostProcessor, B
 		return bean;
 	}
 
+	// 注册错误页面
 	private void postProcessBeforeInitialization(ErrorPageRegistry registry) {
 		for (ErrorPageRegistrar registrar : getRegistrars()) {
 			registrar.registerErrorPages(registry);
